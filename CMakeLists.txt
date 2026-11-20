@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.22)
+project(NFPorrada VERSION 0.1.0 LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS")
+# JUCE comes as the ./JUCE submodule (git submodule update --init). Fallback for the owner's Mac: the copy used by NF Capture.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/JUCE/CMakeLists.txt")
+ add_subdirectory(JUCE)
+else()
+ add_subdirectory($ENV{HOME}/NF-Capture/JUCE JUCE)
+endif()
+set(formats VST3)
+if(APPLE)
+ list(APPEND formats AU)
+endif()
+juce_add_plugin(NFPorrada COMPANY_NAME "NF Audio Tools" BUNDLE_ID "com.nfaudiotools.nfbrutal"
+ PLUGIN_MANUFACTURER_CODE Nfat PLUGIN_CODE Nfbr FORMATS ${formats} PRODUCT_NAME "NF Brutal"
+ IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE COPY_PLUGIN_AFTER_BUILD FALSE AU_MAIN_TYPE kAudioUnitType_Effect)
+juce_add_binary_data(NFPorradaAssets HEADER_NAME NFPorradaBinaryData.h NAMESPACE NFPorradaBinaryData SOURCES Assets/Logo/NF_Audio_Tools_Logo.png Assets/Logo/Signature_orange.png)
+target_sources(NFPorrada PRIVATE Source/PluginProcessor.cpp)
+target_compile_definitions(NFPorrada PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
+target_link_libraries(NFPorrada PRIVATE NFPorradaAssets juce::juce_audio_utils PUBLIC juce::juce_recommended_config_flags)
+# UI preview without a host: build/NFPorradaShot_artefacts/Release/NFPorradaShot out.png [width] [grDb] [slay]
+juce_add_console_app(NFPorradaShot PRODUCT_NAME "NFPorradaShot")
+target_sources(NFPorradaShot PRIVATE Source/Shot.cpp Source/PluginProcessor.cpp)
+target_compile_definitions(NFPorradaShot PRIVATE NFPORRADA_NO_ENTRY=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+target_link_libraries(NFPorradaShot PRIVATE NFPorradaAssets juce::juce_audio_utils juce::juce_recommended_config_flags)
