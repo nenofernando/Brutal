@@ -1,4 +1,6 @@
 build/
-build.log
+build-*/
+build*.log
+build_*.log
 .DS_Store
-Tools/porrada_render
+Tools/brutal_render

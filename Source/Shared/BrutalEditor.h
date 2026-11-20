@@ -1,14 +1,13 @@
 #pragma once
-// NF Brutal editor. Everything is laid out in "panel units" (810 x 270 = default window) and scaled to the window.
-// Layers (strict, see NF UI rule): 1) chassis = static panel painted in PorradaEditor::paint (no controls baked in);
+// NF Brutal editor. Shared (identical file) by the NF Brutal plug-in and the native insert inside Mixa Studio. Everything is laid out in "panel units" (810 x 270 = default window) and scaled to the window.
+// Layers (strict, see NF UI rule): 1) chassis = static panel painted in BrutalEditor::paint (no controls baked in);
 // 2) knob bodies = static caps drawn by drawKnobCap(); 3) dynamic parts (value arc, pointer, LEDs, meter, value texts) are separate
 // and recomputed from the parameters on every repaint.
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "PluginProcessor.h"
-#include "NFPorradaBinaryData.h"
+#include "BrutalCore.h"
 
-namespace nfporradaui
+namespace nfbrutalui
 {
 using juce::Colour;
 using juce::Graphics;
@@ -211,14 +210,16 @@ private:
 };
 
 // ------------------------------------------------------------------------------------------------------------------------------
-class PorradaEditor final : public juce::AudioProcessorEditor, private juce::ValueTree::Listener, private juce::AsyncUpdater
+class BrutalEditor final : public juce::AudioProcessorEditor, private juce::ValueTree::Listener, private juce::AsyncUpdater
 {
 public:
-    explicit PorradaEditor(PorradaProcessor& p);
-    ~PorradaEditor() override { proc.apvts.state.removeListener(this); }
+    BrutalEditor(juce::AudioProcessor& owner, nfbrutal::BrutalCore& core, juce::Image logoImage);
+    ~BrutalEditor() override { proc.apvts.state.removeListener(this); }
     void paint(Graphics&) override;
     void paintOverChildren(Graphics&) override;
     void resized() override;
+    // Optional cover component (the plug-in puts its licence activation window here; the native Mixa insert uses none). Added above everything.
+    void installOverlay(std::unique_ptr<juce::Component> c) { overlay = std::move(c); addChildComponent(*overlay); overlay->setBounds(getLocalBounds()); overlay->toFront(false); }
 
 private:
     struct KnobSpec { ParamKnob* k; const char* label; float cx, cy; };
@@ -235,9 +236,10 @@ private:
     void loadPresetFile(const juce::File& f);
     void restoreDefault();
 
-    PorradaProcessor& proc;
+    juce::AudioProcessor& owner;
+    nfbrutal::BrutalCore& proc;
     float layoutScale = 1.0f;
-    juce::Image logo, signature;
+    juce::Image logo;
     juce::TooltipWindow tooltipWindow { this, 500 };
     ParamKnob input, slay, gain, body, mix;
     LedButton lofiBtn { false }, powerBtn { true };
@@ -247,17 +249,17 @@ private:
     std::unique_ptr<juce::FileChooser> chooser;
     juce::ComponentBoundsConstrainer constrainer;
     std::vector<KnobSpec> specs;
+    std::unique_ptr<juce::Component> overlay;
 };
 
-inline PorradaEditor::PorradaEditor(PorradaProcessor& p)
-    : juce::AudioProcessorEditor(p), proc(p),
+inline BrutalEditor::BrutalEditor(juce::AudioProcessor& ownerProc, nfbrutal::BrutalCore& p, juce::Image logoImage)
+    : juce::AudioProcessorEditor(ownerProc), owner(ownerProc), proc(p),
       input(*p.apvts.getParameter("input"), 30.0f, false), slay(*p.apvts.getParameter("slay"), 44.0f, true), gain(*p.apvts.getParameter("gain"), 30.0f, false),
       body(*p.apvts.getParameter("body"), 30.0f, false), mix(*p.apvts.getParameter("mix"), 30.0f, false),
       lofiAtt(*p.apvts.getParameter("lofi"), lofiBtn), powerAtt(*p.apvts.getParameter("power"), powerBtn),
       meter(p.grDb)
 {
-    logo = juce::ImageFileFormat::loadFrom(NFPorradaBinaryData::NF_Audio_Tools_Logo_png, (size_t) NFPorradaBinaryData::NF_Audio_Tools_Logo_pngSize);
-    signature = juce::ImageFileFormat::loadFrom(NFPorradaBinaryData::Signature_orange_png, (size_t) NFPorradaBinaryData::Signature_orange_pngSize);
+    logo = logoImage;
     specs = { { &input, "INPUT", 250.0f, 166.0f }, { &slay, "SLAY", 372.0f, 160.0f }, { &gain, "GAIN", 498.0f, 166.0f }, { &body, "BODY", 590.0f, 166.0f }, { &mix, "MIX", 682.0f, 166.0f } };
     for (auto& s : specs) { addAndMakeVisible(*s.k); s.k->onChanged = [this] { repaint(); }; }
     addAndMakeVisible(lofiBtn); addAndMakeVisible(powerBtn);
@@ -275,7 +277,7 @@ inline PorradaEditor::PorradaEditor(PorradaProcessor& p)
     setSize(savedW, (int) std::lround(savedW * kH / kW));
 }
 
-inline void PorradaEditor::resized()
+inline void BrutalEditor::resized()
 {
     layoutScale = (float) getWidth() / kW;
     for (auto& s : specs)
@@ -289,11 +291,12 @@ inline void PorradaEditor::resized()
     logoButton.setBounds(scaled(26.0f, 18.0f, 126.0f, 72.0f));
     presetBar.setBounds(scaled(607.0f, 7.0f, 157.0f, 21.0f));
     menuButton.setBounds(scaled(774.0f, 9.0f, 20.0f, 16.0f));
+    if (overlay != nullptr) overlay->setBounds(getLocalBounds());
     if (getWidth() > 0) proc.apvts.state.setProperty("uiWidth", getWidth(), nullptr);
 }
 
 // ---- layer 1: the chassis (static panel; no controls) ----
-inline void PorradaEditor::paint(Graphics& g)
+inline void BrutalEditor::paint(Graphics& g)
 {
     g.addTransform(juce::AffineTransform::scale(layoutScale));
     const juce::Rectangle<float> panel(0.0f, 0.0f, kW, kH);
@@ -337,8 +340,9 @@ inline void PorradaEditor::paint(Graphics& g)
     centredText(g, "ON", 747.0f, 232.0f, uiFont(9.0f, true, 0.14f));
 }
 
-inline void PorradaEditor::paintOverChildren(Graphics& g)
+inline void BrutalEditor::paintOverChildren(Graphics& g)
 {
+    if (overlay != nullptr && overlay->isVisible()) return;   // the licence window covers everything, including the value texts
     g.addTransform(juce::AffineTransform::scale(layoutScale));
     g.setColour(kOrangeHot);
     for (auto& s : specs)
@@ -346,14 +350,14 @@ inline void PorradaEditor::paintOverChildren(Graphics& g)
 }
 
 // ---- menus / presets ----
-inline void PorradaEditor::stepPreset(int dir)
+inline void BrutalEditor::stepPreset(int dir)
 {
     auto list = savedPresets(); if (list.isEmpty()) return;
     int idx = -1; for (int i = 0; i < list.size(); ++i) if (list[i].getFileNameWithoutExtension() == presetName()) idx = i;
     idx = idx < 0 ? (dir > 0 ? 0 : list.size() - 1) : (idx + dir + list.size()) % list.size();
     loadPresetFile(list[idx]);
 }
-inline void PorradaEditor::showPresetMenu()
+inline void BrutalEditor::showPresetMenu()
 {
     juce::PopupMenu m; auto saved = savedPresets();
     for (int i = 0; i < saved.size() && i < 200; ++i) m.addItem(2000 + i, saved[i].getFileNameWithoutExtension(), true, saved[i].getFileNameWithoutExtension() == presetName());
@@ -368,30 +372,30 @@ inline void PorradaEditor::showPresetMenu()
         else if (r >= 2000 && r - 2000 < saved.size()) loadPresetFile(saved[r - 2000]);
     });
 }
-inline void PorradaEditor::savePreset()
+inline void BrutalEditor::savePreset()
 {
     chooser = std::make_unique<juce::FileChooser>("Save preset", presetsDir().getChildFile("My preset.xml"), "*.xml");
     chooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting, [this](const juce::FileChooser& fc)
     {
         auto f = fc.getResult(); if (f == juce::File()) return; f = f.withFileExtension("xml");
         proc.apvts.state.setProperty("presetName", f.getFileNameWithoutExtension(), nullptr);
-        if (auto xml = proc.apvts.copyState().createXml()) { xml->setAttribute("nfporradaPreset", 1); xml->writeTo(f); }
+        if (auto xml = proc.apvts.copyState().createXml()) { xml->setAttribute("nfbrutalPreset", 1); xml->writeTo(f); }
     });
 }
-inline void PorradaEditor::loadPresetFile(const juce::File& f)
+inline void BrutalEditor::loadPresetFile(const juce::File& f)
 {
     auto xml = juce::XmlDocument::parse(f);
-    if (xml == nullptr || xml->getIntAttribute("nfporradaPreset", 0) != 1 || !xml->hasTagName(proc.apvts.state.getType())) { juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "NF Brutal", "Invalid NF Brutal preset"); return; }
+    if (xml == nullptr || xml->getIntAttribute("nfbrutalPreset", 0) != 1 || !xml->hasTagName(proc.apvts.state.getType())) { juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "NF Brutal", "Invalid NF Brutal preset"); return; }
     const auto w = proc.apvts.state.getProperty("uiWidth");
     proc.apvts.replaceState(juce::ValueTree::fromXml(*xml));
     proc.apvts.state.setProperty("presetName", f.getFileNameWithoutExtension(), nullptr); proc.apvts.state.setProperty("uiWidth", w, nullptr);
 }
-inline void PorradaEditor::restoreDefault()
+inline void BrutalEditor::restoreDefault()
 {
-    for (auto* p : proc.getParameters()) p->setValueNotifyingHost(p->getDefaultValue());
+    for (auto* p : owner.getParameters()) p->setValueNotifyingHost(p->getDefaultValue());
     proc.apvts.state.setProperty("presetName", "Default", nullptr);
 }
-inline void PorradaEditor::showMainMenu()
+inline void BrutalEditor::showMainMenu()
 {
     juce::PopupMenu m; m.addItem(1, "About NF Brutal");
     m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&menuButton), [](int r)
@@ -400,4 +404,4 @@ inline void PorradaEditor::showMainMenu()
             "Vocal slayer: a very fast limiting compressor with make-up gain and saturation.\n\nInput, Slay (amount / hardness), Gain, Body (low-end cut), Mix, Lofi and On.\n\nNF Audio Tools by Nenno Fernando.");
     });
 }
-} // namespace nfporradaui
+} // namespace nfbrutalui

@@ -1,4 +1,4 @@
-// NF Porrada - DSP core (header only, no JUCE dependency so it can be used by the offline test tool).
+// NF Brutal - DSP core (header only, no JUCE dependency so it can be used by the offline test tool).
 // Structure (measured from the reference behaviour, see ~/NF-GRD-Match/FINDINGS.md):
 //   dry -> Input gain -> Body (low shelf cut) -> peak limiter (soft-ratio, threshold/knee from Slay)
 //       -> make-up Gain -> odd-harmonic saturator -> Lofi band-pass (optional) -> Mix with dry
@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace porrada
+namespace brutal
 {
 constexpr double kPi = 3.14159265358979323846;
 
@@ -173,4 +173,4 @@ private:
     SlayShape sh{}; int holdLeft = 0, holdSamples = 600; float pLin = 0.03f, bodyK = 0.668f, grDb = 0.f, atk = 0.1f, relPerSample = 0.005f, smoothA = 0.001f;
     OnePole body[2], det[2]; Biquad lofiA[2], lofiB[2];
 };
-} // namespace porrada
+} // namespace brutal

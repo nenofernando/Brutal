@@ -1,0 +1,7 @@
+#pragma once
+// Public half of the NF Brutal licence key (private half: ~/.nfbr_license/private.pem, never committed). Safe to commit.
+namespace NFBRLicenseKey
+{
+    static constexpr const char* exponentHex = "10001";
+    static constexpr const char* modulusHex = "a0672067e5201d92cc1b086d3e1fe86246e5e0e97be126698649229144bce6133c2e458d2c22223f27a57a6f95feeae81b91a98d7c7218adb6d16c7907543ead0443c094399de8961026b2493cb8ba1d62e26949cf1f0b19b22be633b5b5d2d73711af308295632e23e54423b1ff11749ea2abaeea6d9bc9a01be56b96e1597463c775f0c142e4a60dba1ef1bfcf94910131d24b56cad21c8d7d90b6a990927faa1e1486593d091ccebb65baabc17e4b79e9c8c2bfe99b3cd6f26549a889ce672d77b1a0fb58e27224272d80a072d8509debd1a2371a50f3fa1537af175184f8396089611635668653002e7291d75f087dab777ec56f9414550ae9cc5b94dba3";
+}

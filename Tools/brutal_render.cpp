@@ -1,5 +1,5 @@
 // Offline renderer: porrada_render in.wav out.wav [idx=norm ...]   (same indexes as the reference host: 0 slay,1 input,2 gain,3 body,4 mix,6 on,7 lofi)
-#include "../Source/PorradaDSP.h"
+#include "../Source/Shared/BrutalDSP.h"
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -30,12 +30,12 @@ static void writeWav(const char* p, const std::vector<float>& L, const std::vect
 int main(int argc, char** argv)
 {
     if (argc < 3) return 1; std::vector<float> L, R; int sr = 48000; if (!readWav(argv[1], L, R, sr)) return 2;
-    porrada::Real r; // defaults of the reference
-    r.inputDb = porrada::inputNormToDb(0.8f); r.gainDb = porrada::gainNormToDb(0.794418f); r.slay = 1.f; r.bodyDb = porrada::bodyNormToDb(0.65f);
-    porrada::SlayTables sl; double bFc = 305.0, dFc = 164.0; float sA = 1.07318f, sN = 2.87328f, dG = -4.2f, pOff = 0.4f; float atkMs = 0.10f, rel = 298.f, hold = 13.8f; int bpos = 1;
+    brutal::Real r; // defaults of the reference
+    r.inputDb = brutal::inputNormToDb(0.8f); r.gainDb = brutal::gainNormToDb(0.794418f); r.slay = 1.f; r.bodyDb = brutal::bodyNormToDb(0.65f);
+    brutal::SlayTables sl; double bFc = 305.0, dFc = 164.0; float sA = 1.07318f, sN = 2.87328f, dG = -4.2f, pOff = 0.4f; float atkMs = 0.10f, rel = 298.f, hold = 13.8f; int bpos = 1;
     for (int a = 3; a < argc; ++a) { std::string s = argv[a]; auto e = s.find('='); int idx = atoi(s.substr(0, e).c_str()); float v = (float) atof(s.substr(e + 1).c_str());
-        switch (idx) { case 0: r.slay = v; break; case 1: r.inputDb = porrada::inputNormToDb(v); break; case 2: r.gainDb = porrada::gainNormToDb(v); break;
-            case 3: r.bodyDb = porrada::bodyNormToDb(v); break; case 4: r.mix = v; break; case 6: r.on = v > 0.5f; break; case 7: r.lofi = v > 0.5f; break; case 20: rel = v; break; case 22: hold = v; break; case 23: atkMs = v; break; case 30: pOff = v; break; default: if (idx >= 100 && idx < 121) sl.lk[idx - 100] = v; else if (idx >= 130 && idx < 151) sl.pdb[idx - 130] = v; break; case 31: dG = v; break; case 32: dFc = v; break; case 33: sA = v; break; case 34: sN = v; break; case 35: bFc = v; break; case 21: bpos = (int) v; break; } }
-    porrada::Engine en; en.slayT = sl; en.attackMs = atkMs; en.pOffsetDb = pOff; en.detGainDb = dG; en.detFc = dFc; en.satA = sA; en.satN = sN; en.bodyFc = bFc; en.relDbPerSec = rel; en.holdMs = hold; en.bodyPos = bpos; en.prepare(sr); en.setParams(r); en.process(L.data(), R.data(), (int) L.size());
+        switch (idx) { case 0: r.slay = v; break; case 1: r.inputDb = brutal::inputNormToDb(v); break; case 2: r.gainDb = brutal::gainNormToDb(v); break;
+            case 3: r.bodyDb = brutal::bodyNormToDb(v); break; case 4: r.mix = v; break; case 6: r.on = v > 0.5f; break; case 7: r.lofi = v > 0.5f; break; case 20: rel = v; break; case 22: hold = v; break; case 23: atkMs = v; break; case 30: pOff = v; break; default: if (idx >= 100 && idx < 121) sl.lk[idx - 100] = v; else if (idx >= 130 && idx < 151) sl.pdb[idx - 130] = v; break; case 31: dG = v; break; case 32: dFc = v; break; case 33: sA = v; break; case 34: sN = v; break; case 35: bFc = v; break; case 21: bpos = (int) v; break; } }
+    brutal::Engine en; en.slayT = sl; en.attackMs = atkMs; en.pOffsetDb = pOff; en.detGainDb = dG; en.detFc = dFc; en.satA = sA; en.satN = sN; en.bodyFc = bFc; en.relDbPerSec = rel; en.holdMs = hold; en.bodyPos = bpos; en.prepare(sr); en.setParams(r); en.process(L.data(), R.data(), (int) L.size());
     writeWav(argv[2], L, R, sr); return 0;
 }

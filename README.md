@@ -6,7 +6,7 @@ Very fast, hard-limiting compressor with make-up gain and odd-harmonic saturatio
 
 Controls: **Slay** (amount / hardness), **Input**, **Gain**, **Body** (low-end cut), **Mix**, **Lofi** (band-pass) and **On**.
 
-Status: early prototype (v0.1.0). No licence lock, no installer, no Windows build yet.
+Status: early release (v0.1.0). The plug-in needs an access key (built with `-DBRUTAL_LICENSE=OFF` for development). Built into Mixa Studio as a native insert (no key there). Installers: `Installer/macos/build_dmg.sh` (Mac) and `Installer/Windows/build_windows_on_mac.sh` (Windows, cross-compiled).
 
 ## Build (macOS)
 
@@ -17,9 +17,9 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release '-DCMAKE_OSX_ARCHITECTUR
 cmake --build build
 ```
 
-Bundles are written to `build/NFPorrada_artefacts/Release/` (the internal CMake targets still carry the working name).
+Bundles are written to `build/NFBrutal_artefacts/Release/` (NF Brutal.vst3 and NF Brutal.component).
 
-* `Source/PorradaDSP.h` – DSP core (header only).
-* `Source/PorradaEditor.h` – user interface.
-* `Tools/porrada_render.cpp` – offline renderer used for tests.
-* `build/NFPorradaShot_artefacts/Release/NFPorradaShot out.png [width] [grDb] [slay]` renders the UI to a PNG without a host.
+* `Source/Shared/BrutalDSP.h` – DSP core (header only).
+* `Source/Shared/BrutalEditor.h` – user interface.
+* `Tools/brutal_render.cpp` – offline renderer used for tests.
+* `build/NFBrutalShot_artefacts/Release/NFBrutalShot out.png [width] [grDb] [slay]` renders the UI to a PNG without a host.
